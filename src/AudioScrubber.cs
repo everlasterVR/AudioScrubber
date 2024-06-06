@@ -44,11 +44,14 @@ namespace everlaster
         JSONStorableStringChooser _scrubberChooser;
         JSONStorableFloat _clipTimeFloat;
         JSONStorableFloat _clipTimeNormalizedFloat;
-        JSONStorableBool _syncClipNameToUISlider;
+        JSONStorableBool _syncClipNameToUISliderBool;
+        JSONStorableBool _showTimestampsBool;
         JSONStorableString _infoString;
         UIDynamicSlider _clipTimeSlider;
         Atom _scrubberAtom;
+        Text _scrubberText;
         Slider _scrubberSlider;
+        string _clipName;
         readonly List<Atom> _uiSliders = new List<Atom>();
 
         public override void Init()
@@ -113,8 +116,9 @@ namespace everlaster
                     }
                 };
 
-                _syncClipNameToUISlider = new JSONStorableBool("Sync clip name to Scrubber", true);
-                _syncClipNameToUISlider.setCallbackFunction = _ => SyncSliderText();
+                _syncClipNameToUISliderBool = new JSONStorableBool("Sync clip name to scrubber", true);
+                _showTimestampsBool = new JSONStorableBool("Show timestamps in scrubber", true);
+                _showTimestampsBool.setCallbackFunction = value => SyncSliderText(); // gets rid of timestamps when disabled
 
                 _infoString = new JSONStorableString("Info",
                     "Usage:" +
@@ -128,7 +132,8 @@ namespace everlaster
                 RegisterStringChooser(_scrubberChooser);
                 RegisterFloat(_clipTimeFloat);
                 RegisterFloat(_clipTimeNormalizedFloat);
-                RegisterBool(_syncClipNameToUISlider);
+                RegisterBool(_syncClipNameToUISliderBool);
+                RegisterBool(_showTimestampsBool);
 
                 CreateScrollablePopup(_scrubberChooser).popup.labelText.color = Color.black;
                 _clipTimeSlider = CreateSlider(_clipTimeFloat, true);
@@ -138,11 +143,23 @@ namespace everlaster
                     _clipTimeFloat.slider = null;
                 }
 
-                CreateToggle(_syncClipNameToUISlider, true);
+                CreateToggle(_syncClipNameToUISliderBool, true);
+                var showTimestampsToggle = CreateToggle(_showTimestampsBool, true);
 
                 var textField = CreateTextField(_infoString);
                 textField.height = 500;
                 textField.backgroundColor = Color.clear;
+
+                _syncClipNameToUISliderBool.setCallbackFunction = value =>
+                {
+                    SyncSliderText();
+                    showTimestampsToggle.toggle.interactable = value;
+                    showTimestampsToggle.textColor = value ? Color.black : Color.gray;
+                    if(!value)
+                    {
+                        _showTimestampsBool.val = false;
+                    }
+                };
 
             }
             catch(Exception e)
@@ -204,6 +221,7 @@ namespace everlaster
                     {
                         _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
                         _scrubberSlider = null;
+                        _scrubberText = null;
                         _scrubberAtom = null;
                     }
 
@@ -240,23 +258,17 @@ namespace everlaster
                     }
                 }
 
+                var prevSlider = _scrubberSlider;
+                if(prevSlider != null)
+                {
+                    prevSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
+                }
+
                 var holderTransform = uiSlider.reParentObject.transform.Find("object/rescaleObject/Canvas/Holder");
-                var scrubberSlider = holderTransform.Find("Slider").GetComponent<Slider>();
-                if(scrubberSlider == null)
-                {
-                    SuperController.LogError($"{nameof(OnScrubberSelected)}: Slider component not found on UISlider '{option}'");
-                    _scrubberChooser.valNoCallback = prevOption;
-                    return;
-                }
-
-                if(_scrubberAtom != null)
-                {
-                    _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
-                }
-
-                scrubberSlider.onValueChanged.AddListener(OnSceneSliderValueChanged);
+                _scrubberSlider = holderTransform.Find("Slider").GetComponent<Slider>();
+                _scrubberText = holderTransform.Find("Text").GetComponent<Text>();
                 _scrubberAtom = uiSlider;
-                _scrubberSlider = scrubberSlider;
+                _scrubberSlider.onValueChanged.AddListener(OnSceneSliderValueChanged);
                 SyncSliderText();
             }
             catch(Exception e)
@@ -267,14 +279,17 @@ namespace everlaster
 
         void SyncSliderText()
         {
-            if(_audioSource == null || _scrubberAtom == null || !_syncClipNameToUISlider.val)
+            if(_audioSource == null || _scrubberAtom == null || !_syncClipNameToUISliderBool.val)
             {
                 return;
             }
 
             if(_audioSource.clip != null)
             {
-                _scrubberAtom.GetStorableByID("Text").SetStringParamValue("text", $"Clip: {_audioSource.clip.name}");
+                _clipName = _audioSource.clip.name;
+                _scrubberAtom.GetStorableByID("Text").SetStringParamValue("text", _clipName);
+                _scrubberText.text = _clipName;
+                UpdateClipLengthTimestamp(_audioSource.clip);
             }
         }
 
@@ -296,6 +311,7 @@ namespace everlaster
         }
 
         AudioClip _prevClip;
+        string _clipLengthTimestamp;
 
         void Update()
         {
@@ -310,30 +326,62 @@ namespace everlaster
                 if(_prevClip != null)
                 {
                     _clipTimeFloat.valNoCallback = 0;
+                    _clipLengthTimestamp = string.Empty;
                     SyncSliderText();
                 }
             }
             else
             {
+                float time = _audioSource.time;
+                float length = clip.length;
+
                 if(clip != _prevClip)
                 {
-                    _clipTimeFloat.max = clip.length;
+                    _clipTimeFloat.valNoCallback = 0;
+                    _clipTimeFloat.max = length;
+                    UpdateClipLengthTimestamp(clip);
                     SyncSliderText();
                 }
 
                 _preventCircularCallback = true;
-                _clipTimeFloat.valNoCallback = Mathf.Min(_audioSource.time, clip.length);
-                float normalized = Mathf.InverseLerp(0, clip.length, _audioSource.time);
+                _clipTimeFloat.valNoCallback = Mathf.Min(time, length);
+                float normalized = Mathf.InverseLerp(0, length, time);
                 if(_scrubberSlider != null)
                 {
                     _scrubberSlider.normalizedValue = normalized;
                     _clipTimeNormalizedFloat.valNoCallback = normalized;
-                }
+                    if(_syncClipNameToUISliderBool.val && _showTimestampsBool.val)
+                    {
+                        UpdateTimestamps(time);
+                    }
 
-                _preventCircularCallback = false;
+                    _preventCircularCallback = false;
+                }
             }
 
             _prevClip = clip;
+        }
+
+        void UpdateClipLengthTimestamp(AudioClip clip) =>
+            _clipLengthTimestamp = clip == null
+                ? string.Empty
+                : $"{(int) (clip.length / 60):D2}:{(int) (clip.length % 60):D2}";
+
+        int _prevMin;
+        int _prevSec;
+
+        void UpdateTimestamps(float time)
+        {
+            int min = (int) time / 60;
+            int sec = (int) time % 60;
+            if(_prevMin == min && _prevSec == sec)
+            {
+                return;
+            }
+
+            _prevMin = min;
+            _prevSec = sec;
+            _scrubberText.text = $"{_clipName} [{min:D2}:{sec:D2} / {_clipLengthTimestamp}]";
         }
 
         public override void RestoreFromJSON(
