@@ -85,6 +85,7 @@ namespace everlaster
                 _uiSliders.AddRange(SuperController.singleton.GetAtoms().Where(atom => atom.type == "UISlider"));
                 SuperController.singleton.onAtomAddedHandlers += OnAtomAdded;
                 SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
+                SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
 
                 _scrubberChooser = new JSONStorableStringChooser("Scrubber", new List<string>(), "None", "Scrubber");
                 _scrubberChooser.setCallbackFunction = OnScrubberSelected;
@@ -169,6 +170,15 @@ namespace everlaster
             if(_scrubberAtom == atom)
             {
                 _scrubberChooser.val = string.Empty;
+            }
+        }
+
+        void OnAtomRenamed(string oldUid, string newUid)
+        {
+            RebuildUISliderOptions();
+            if(_scrubberChooser.val == oldUid)
+            {
+                _scrubberChooser.valNoCallback = newUid;
             }
         }
 
@@ -338,6 +348,7 @@ namespace everlaster
 
             SuperController.singleton.onAtomAddedHandlers -= OnAtomAdded;
             SuperController.singleton.onAtomRemovedHandlers -= OnAtomRemoved;
+            SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
         }
     }
 }
