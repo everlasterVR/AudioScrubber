@@ -87,7 +87,7 @@ namespace everlaster
                 SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
 
                 _scrubberChooser = new JSONStorableStringChooser("Scrubber", new List<string>(), "None", "Scrubber");
-                _scrubberChooser.setCallbackFunction = OnUISliderSelected;
+                _scrubberChooser.setCallbackFunction = OnScrubberSelected;
 
                 _clipTimeFloat = new JSONStorableFloat("Clip time (s)", 0, 0, 60, false);
                 _clipTimeFloat.isStorable = false;
@@ -132,7 +132,6 @@ namespace everlaster
                 _clipTimeSlider.valueFormat = "F1";
                 if(_uiListener == null || !_uiListener.isEnabled)
                 {
-                    Debug.Log("Detaching slider (Init)");
                     _clipTimeFloat.slider = null;
                 }
 
@@ -164,7 +163,6 @@ namespace everlaster
             if(_uiSliders.Contains(atom))
             {
                 _uiSliders.Remove(atom);
-                Debug.Log($"Removed {atom.uid}");
             }
 
             RebuildUISliderOptions();
@@ -176,7 +174,7 @@ namespace everlaster
 
         void RebuildUISliderOptions()
         {
-            var options = new List<string> { "" };
+            var options = new List<string> { string.Empty };
             var displayOptions = new List<string> { "None" };
             options.AddRange(_uiSliders.Select(atom => atom.uid));
             displayOptions.AddRange(_uiSliders.Select(atom => atom.uid));
@@ -184,27 +182,28 @@ namespace everlaster
             _scrubberChooser.displayChoices = displayOptions;
         }
 
-        void OnUISliderSelected(string option)
+        void OnScrubberSelected(string option)
         {
             try
             {
-                if(_scrubberAtom != null)
-                {
-                    _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
-                    _scrubberSlider = null;
-                    _scrubberAtom = null;
-                }
-
                 if(option == string.Empty)
                 {
+                    if(_scrubberAtom != null)
+                    {
+                        _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
+                        _scrubberSlider = null;
+                        _scrubberAtom = null;
+                    }
+
                     return;
                 }
 
+                string prevOption = _scrubberAtom != null ? _scrubberAtom.uid : string.Empty;
                 var uiSlider = _uiSliders.Find(atom => atom.uid == option);
                 if(uiSlider == null)
                 {
-                    SuperController.LogError($"{nameof(OnUISliderSelected)}: UISlider '{option}' not found");
-                    _scrubberChooser.valNoCallback = string.Empty;
+                    SuperController.LogError($"{nameof(OnScrubberSelected)}: UISlider '{option}' not found");
+                    _scrubberChooser.valNoCallback = prevOption;
                     return;
                 }
 
@@ -215,36 +214,42 @@ namespace everlaster
                     {
                         if(action.receiverTargetName == _clipTimeFloat.name)
                         {
-                            SuperController.LogError($"{nameof(OnUISliderSelected)}: {uiSlider.uid} is already triggering the {_clipTimeFloat.name} parameter");
-                            _scrubberChooser.valNoCallback = string.Empty;
+                            SuperController.LogError($"{nameof(OnScrubberSelected)}: {uiSlider.uid} is already triggering the {_clipTimeFloat.name} parameter");
+                            _scrubberChooser.valNoCallback = prevOption;
                             return;
                         }
 
                         if(action.receiverTargetName == _clipTimeNormalizedFloat.name)
                         {
-                            SuperController.LogError($"{nameof(OnUISliderSelected)}: {uiSlider.uid} is already triggering the {_clipTimeNormalizedFloat.name} parameter");
-                            _scrubberChooser.valNoCallback = string.Empty;
+                            SuperController.LogError($"{nameof(OnScrubberSelected)}: {uiSlider.uid} is already triggering the {_clipTimeNormalizedFloat.name} parameter");
+                            _scrubberChooser.valNoCallback = prevOption;
                             return;
                         }
                     }
                 }
 
                 var holderTransform = uiSlider.transform.Find("reParentObject/object/rescaleObject/Canvas/Holder");
-                _scrubberSlider = holderTransform.Find("Slider").GetComponent<Slider>();
-                if(_scrubberSlider == null)
+                var scrubberSlider = holderTransform.Find("Slider").GetComponent<Slider>();
+                if(scrubberSlider == null)
                 {
-                    SuperController.LogError($"{nameof(OnUISliderSelected)}: Slider component not found on UISlider '{option}'");
-                    _scrubberChooser.valNoCallback = string.Empty;
+                    SuperController.LogError($"{nameof(OnScrubberSelected)}: Slider component not found on UISlider '{option}'");
+                    _scrubberChooser.valNoCallback = prevOption;
                     return;
                 }
 
+                if(_scrubberAtom != null)
+                {
+                    _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
+                }
+
+                scrubberSlider.onValueChanged.AddListener(OnSceneSliderValueChanged);
                 _scrubberAtom = uiSlider;
-                _scrubberSlider.onValueChanged.AddListener(OnSceneSliderValueChanged);
+                _scrubberSlider = scrubberSlider;
                 SyncSliderText();
             }
             catch(Exception e)
             {
-                SuperController.LogError($"{nameof(OnUISliderSelected)}: {e}");
+                SuperController.LogError($"{nameof(OnScrubberSelected)}: {e}");
             }
         }
 
