@@ -9,12 +9,32 @@ namespace everlaster
 {
     sealed class AudioScrubber : MVRScript
     {
+        UnityEventsListener _uiListener;
+
         public override void InitUI()
         {
             base.InitUI();
-            if(UITransform)
+            if(UITransform != null)
             {
                 UITransform.Find("Scroll View").GetComponent<Image>().color = new Color(0.85f, 0.85f, 0.85f);
+                if(_uiListener == null)
+                {
+                    _uiListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
+                    _uiListener.enabledHandlers += () =>
+                    {
+                        if(_clipTimeFloat != null)
+                        {
+                            _clipTimeFloat.slider = _clipTimeSlider.slider;
+                        }
+                    };
+                    _uiListener.disabledHandlers += () =>
+                    {
+                        if(_clipTimeFloat != null)
+                        {
+                            _clipTimeFloat.slider = null;
+                        }
+                    };
+                }
             }
         }
 
@@ -25,6 +45,7 @@ namespace everlaster
         JSONStorableFloat _clipTimeNormalizedFloat;
         JSONStorableBool _syncClipNameToUISlider;
         JSONStorableString _infoString;
+        UIDynamicSlider _clipTimeSlider;
         Atom _scrubberAtom;
         Slider _scrubberSlider;
         readonly List<Atom> _uiSliders = new List<Atom>();
@@ -107,7 +128,14 @@ namespace everlaster
                 RegisterBool(_syncClipNameToUISlider);
 
                 CreateScrollablePopup(_scrubberChooser).popup.labelText.color = Color.black;
-                CreateSlider(_clipTimeFloat, true).valueFormat = "F1";
+                _clipTimeSlider = CreateSlider(_clipTimeFloat, true);
+                _clipTimeSlider.valueFormat = "F1";
+                if(_uiListener == null || !_uiListener.isEnabled)
+                {
+                    Debug.Log("Detaching slider (Init)");
+                    _clipTimeFloat.slider = null;
+                }
+
                 CreateToggle(_syncClipNameToUISlider, true);
 
                 var textField = CreateTextField(_infoString);
@@ -293,6 +321,16 @@ namespace everlaster
 
         void OnDestroy()
         {
+            if(_uiListener != null)
+            {
+                DestroyImmediate(_uiListener);
+            }
+
+            if(_scrubberSlider != null)
+            {
+                _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
+            }
+
             SuperController.singleton.onAtomAddedHandlers -= OnAtomAdded;
             SuperController.singleton.onAtomRemovedHandlers -= OnAtomRemoved;
         }

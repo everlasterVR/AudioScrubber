@@ -89,6 +89,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="src\AudioScrubber.cs" />
+        <Compile Include="src\UnityEventsListener.cs" />
     </ItemGroup>
     <ItemGroup>
         <None Include=".gitignore" />
