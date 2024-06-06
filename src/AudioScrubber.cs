@@ -1,4 +1,5 @@
 #define ENV_DEVELOPMENT
+using SimpleJSON;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -89,6 +90,7 @@ namespace everlaster
 
                 _scrubberChooser = new JSONStorableStringChooser("Scrubber", new List<string>(), "None", "Scrubber");
                 _scrubberChooser.setCallbackFunction = OnScrubberSelected;
+                _scrubberChooser.representsAtomUid = true;
 
                 _clipTimeFloat = new JSONStorableFloat("Clip time (s)", 0, 0, 60, false);
                 _clipTimeFloat.isStorable = false;
@@ -238,7 +240,7 @@ namespace everlaster
                     }
                 }
 
-                var holderTransform = uiSlider.transform.Find("reParentObject/object/rescaleObject/Canvas/Holder");
+                var holderTransform = uiSlider.reParentObject.transform.Find("object/rescaleObject/Canvas/Holder");
                 var scrubberSlider = holderTransform.Find("Slider").GetComponent<Slider>();
                 if(scrubberSlider == null)
                 {
@@ -332,6 +334,32 @@ namespace everlaster
             }
 
             _prevClip = clip;
+        }
+
+        public override void RestoreFromJSON(
+            JSONClass jc,
+            bool restorePhysical = true,
+            bool restoreAppearance = true,
+            JSONArray presetAtoms = null,
+            bool setMissingToDefault = true
+        )
+        {
+            if(containingAtom.containingSubScene != null)
+            {
+                string subsceneUid = containingAtom.uid.Replace(containingAtom.uidWithoutSubScenePath, "");
+
+                /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser.
+                 * - Assumes the targeted scrubber atom is in the same SubScene as the containing atom.
+                 * - The stored value will already start with the SubScene UID if loading e.g. a scene file rather than a subscene.
+                 */
+                if(jc.HasKey(_scrubberChooser.name) && !jc[_scrubberChooser.name].Value.StartsWith(subsceneUid))
+                {
+                    subScenePrefix = subsceneUid;
+                }
+            }
+
+            base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+            subScenePrefix = null;
         }
 
         void OnDestroy()
