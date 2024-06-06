@@ -1,0 +1,21 @@
+{
+  "licenseType": "CC BY-SA",
+  "creatorName": "everlaster",
+  "packageName": "AudioScrubber",
+  "standardReferenceVersionOption": "Latest",
+  "scriptReferenceVersionOption": "Exact",
+  "description": "v0.0.0. Scrub AudioSource clip playback with a UISlider or triggers.",
+  "credits": "MacGruber",
+  "instructions": "Add to a Person, AudioSource, AptSpeaker_Import or RhythmSource atom.",
+  "promotionalLink": "https://patreon.com/everlaster",
+  "programVersion": "1.22.0.3",
+  "contentList": [
+    "Custom/Scripts/everlaster/AudioScrubber/AudioScrubber.cslist",
+    "Custom/Scripts/everlaster/AudioScrubber/src"
+  ],
+  "dependencies": {
+  },
+  "customOptions": {
+    "preloadMorphs": "false"
+  }
+}
