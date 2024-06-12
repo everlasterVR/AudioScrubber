@@ -118,7 +118,7 @@ namespace everlaster
 
                 _syncClipNameToUISliderBool = new JSONStorableBool("Sync clip name to scrubber", true);
                 _showTimestampsBool = new JSONStorableBool("Show timestamps in scrubber", true);
-                _showTimestampsBool.setCallbackFunction = value => SyncSliderText(); // gets rid of timestamps when disabled
+                _showTimestampsBool.setCallbackFunction = value => SyncSliderText();
 
                 _infoString = new JSONStorableString("Info",
                     "Usage:" +
@@ -288,7 +288,7 @@ namespace everlaster
             {
                 _clipName = _audioSource.clip.name;
                 _scrubberAtom.GetStorableByID("Text").SetStringParamValue("text", _clipName);
-                _scrubberText.text = _clipName;
+                _scrubberText.text = _clipName; // gets rid of timestamps when _showTimestampsBool set to false
                 UpdateClipLengthTimestamp(_audioSource.clip);
             }
         }
@@ -326,8 +326,20 @@ namespace everlaster
                 if(_prevClip != null)
                 {
                     _clipTimeFloat.valNoCallback = 0;
+                    _clipTimeNormalizedFloat.valNoCallback = 0;
+                    if(_scrubberSlider != null)
+                    {
+                        _preventCircularCallback = true;
+                        _scrubberSlider.normalizedValue = 0;
+                        if(_syncClipNameToUISliderBool.val && _showTimestampsBool.val)
+                        {
+                            UpdateTimestamps(0);
+                        }
+
+                        _preventCircularCallback = false;
+                    }
+
                     _clipLengthTimestamp = string.Empty;
-                    SyncSliderText();
                 }
             }
             else
@@ -339,15 +351,14 @@ namespace everlaster
                 {
                     _clipTimeFloat.valNoCallback = 0;
                     _clipTimeFloat.max = length;
-                    UpdateClipLengthTimestamp(clip);
                     SyncSliderText();
                 }
 
-                _preventCircularCallback = true;
                 _clipTimeFloat.valNoCallback = Mathf.Min(time, length);
                 float normalized = Mathf.InverseLerp(0, length, time);
                 if(_scrubberSlider != null)
                 {
+                    _preventCircularCallback = true;
                     _scrubberSlider.normalizedValue = normalized;
                     _clipTimeNormalizedFloat.valNoCallback = normalized;
                     if(_syncClipNameToUISliderBool.val && _showTimestampsBool.val)
