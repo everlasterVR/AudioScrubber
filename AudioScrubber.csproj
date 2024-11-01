@@ -88,6 +88,7 @@
 <!--        </Reference>-->
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Common\src\**\*.cs"/>
         <Compile Include="src\AudioScrubber.cs" />
         <Compile Include="src\UnityEventsListener.cs" />
     </ItemGroup>
