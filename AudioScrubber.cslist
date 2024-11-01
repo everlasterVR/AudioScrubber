@@ -1,0 +1,7 @@
+Common\src\Components\UnityEventsListener.cs
+Common\src\Utils\FileUtils.cs
+Common\src\Utils\LogBuilder.cs
+Common\src\Extensions.cs
+Common\src\Resources.cs
+Common\src\Script.cs
+src\AudioScrubber.cs

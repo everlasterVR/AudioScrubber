@@ -34,36 +34,36 @@
         <Reference Include="Assembly-CSharp">
             <HintPath>..\..\..\..\VaM_Data\Managed\Assembly-CSharp.dll</HintPath>
         </Reference>
-        <Reference Include="System" />
-        <Reference Include="System.Core" />
-        <Reference Include="System.Xml.Linq" />
-<!--        <Reference Include="System.Data.DataSetExtensions" />-->
-<!--        <Reference Include="System.Data" />-->
-<!--        <Reference Include="System.Xml" />-->
+        <Reference Include="System"/>
+        <Reference Include="System.Core"/>
+        <Reference Include="System.Xml.Linq"/>
+        <Reference Include="System.Data.DataSetExtensions"/>
+        <Reference Include="System.Data"/>
+        <Reference Include="System.Xml"/>
         <Reference Include="UnityEngine">
             <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.dll</HintPath>
         </Reference>
-<!--        <Reference Include="UnityEngine.AnimationModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>-->
-<!--        </Reference>-->
-<!--        <Reference Include="UnityEngine.AssetBundleModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>-->
-<!--        </Reference>-->
+        <Reference Include="UnityEngine.AnimationModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.AssetBundleModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.AudioModule">
             <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
         </Reference>
-<!--        <Reference Include="UnityEngine.BaselibModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.BaselibModule.dll</HintPath>-->
-<!--        </Reference>-->
-<!--        <Reference Include="UnityEngine.ClothModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.ClothModule.dll</HintPath>-->
-<!--        </Reference>-->
+        <Reference Include="UnityEngine.BaselibModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.BaselibModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.ClothModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.ClothModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.CoreModule">
             <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
-<!--        <Reference Include="UnityEngine.InputModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.InputModule.dll</HintPath>-->
-<!--        </Reference>-->
+        <Reference Include="UnityEngine.InputModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
             <SpecificVersion>False</SpecificVersion>
             <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
@@ -74,23 +74,22 @@
         <Reference Include="UnityEngine.UI">
             <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.UI.dll</HintPath>
         </Reference>
-<!--        <Reference Include="UnityEngine.UIElementsModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>-->
-<!--        </Reference>-->
-       <Reference Include="UnityEngine.UIModule">
-           <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.UIModule.dll</HintPath>
-       </Reference>
-<!--        <Reference Include="UnityEngine.VRModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.VRModule.dll</HintPath>-->
-<!--        </Reference>-->
-<!--        <Reference Include="UnityEngine.XRModule">-->
-<!--            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.XRModule.dll</HintPath>-->
-<!--        </Reference>-->
+        <Reference Include="UnityEngine.UIElementsModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UIModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.VRModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.XRModule">
+            <HintPath>..\..\..\..\VaM_Data\Managed\UnityEngine.XRModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Common\src\**\*.cs"/>
         <Compile Include="src\AudioScrubber.cs" />
-        <Compile Include="src\UnityEventsListener.cs" />
     </ItemGroup>
     <ItemGroup>
         <None Include=".gitignore" />
@@ -98,7 +97,7 @@
         <None Include="README.md" />
     </ItemGroup>
     <ItemGroup>
-        <Content Include="scripts\generate_cslist.sh" />
+        <Content Include="AudioScrubber.cslist" />
         <Content Include="scripts\package.sh" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>

@@ -1,3 +1,4 @@
+#define VAM_GT_1_22
 #define ENV_DEVELOPMENT
 using SimpleJSON;
 using System;
@@ -8,34 +9,24 @@ using UnityEngine.UI;
 
 namespace everlaster
 {
-    sealed class AudioScrubber : MVRScript
+    sealed class AudioScrubber : Script
     {
-        UnityEventsListener _uiListener;
+        public override bool ShouldIgnore() => false;
+        protected override bool useVersioning => true;
 
-        public override void InitUI()
+        protected override void OnUIEnabled()
         {
-            base.InitUI();
-            if(UITransform != null)
+            if(_clipTimeFloat != null)
             {
-                UITransform.Find("Scroll View").GetComponent<Image>().color = new Color(0.85f, 0.85f, 0.85f);
-                if(_uiListener == null)
-                {
-                    _uiListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
-                    _uiListener.enabledHandlers += () =>
-                    {
-                        if(_clipTimeFloat != null)
-                        {
-                            _clipTimeFloat.slider = _clipTimeSlider.slider;
-                        }
-                    };
-                    _uiListener.disabledHandlers += () =>
-                    {
-                        if(_clipTimeFloat != null)
-                        {
-                            _clipTimeFloat.slider = null;
-                        }
-                    };
-                }
+                _clipTimeFloat.slider = _clipTimeSlider.slider;
+            }
+        }
+
+        protected override void OnUIDisabled()
+        {
+            if(_clipTimeFloat != null)
+            {
+                _clipTimeFloat.slider = null;
             }
         }
 
@@ -46,8 +37,8 @@ namespace everlaster
         JSONStorableFloat _clipTimeNormalizedFloat;
         JSONStorableBool _syncClipNameToUISliderBool;
         JSONStorableBool _showTimestampsBool;
-        JSONStorableString _infoString;
         UIDynamicSlider _clipTimeSlider;
+        UIDynamicToggle _showTimestampsToggle;
         Atom _scrubberAtom;
         Text _scrubberText;
         Slider _scrubberSlider;
@@ -58,30 +49,27 @@ namespace everlaster
         {
             try
             {
+                logBuilder = new LogBuilder(nameof(AudioScrubber));
                 string storableId;
-                switch(containingAtom.type)
+                var typeToStorableId = new Dictionary<string, string>
                 {
-                    case "Person":
-                        storableId = "HeadAudioSource";
-                        break;
-                    case "AudioSource":
-                        storableId = "AudioSource";
-                        break;
-                    case "AptSpeaker":
-                        storableId = "AptSpeaker_Import";
-                        break;
-                    case "RhythmAudioSource":
-                        storableId = "RhythmSource";
-                        break;
-                    default:
-                        SuperController.LogError($"Add to a Person, AudioSource, AptSpeaker, or RhythmAudioSource atom, not {containingAtom.type}");
-                        return;
+                    { AtomType.PERSON, "HeadAudioSource" },
+                    { AtomType.AUDIO_SOURCE, "AudioSource" },
+                    { AtomType.APT_SPEAKER, "AptSpeaker_Import" },
+                    { AtomType.RHYTHM_AUDIO_SOURCE, "RhythmSource" },
+                };
+
+                if(!typeToStorableId.TryGetValue(containingAtom.type, out storableId))
+                {
+                    string atomTypesString = typeToStorableId.Keys.Select(AtomType.Inflect).ToPrettyString(", ").ReplaceLast(", ", ", or ");
+                    OnInitError($"Plugin must be added to {atomTypesString} atom.");
+                    return;
                 }
 
                 _audioSourceControl = containingAtom.GetStorableByID(storableId) as AudioSourceControl;
                 if(_audioSourceControl == null)
                 {
-                    SuperController.LogError($"AudioSourceControl {storableId} not found on {containingAtom.uid}");
+                    OnInitError($"AudioSourceControl {storableId} not found on {containingAtom.uid}");
                     return;
                 }
 
@@ -117,16 +105,19 @@ namespace everlaster
                 };
 
                 _syncClipNameToUISliderBool = new JSONStorableBool("Sync clip name to scrubber", true);
+                _syncClipNameToUISliderBool.setCallbackFunction = value =>
+                {
+                    SyncSliderText();
+                    _showTimestampsToggle.toggle.interactable = value;
+                    _showTimestampsToggle.textColor = value ? Color.black : Color.gray;
+                    if(!value)
+                    {
+                        _showTimestampsBool.val = false;
+                    }
+                };
+
                 _showTimestampsBool = new JSONStorableBool("Show timestamps in scrubber", true);
                 _showTimestampsBool.setCallbackFunction = value => SyncSliderText();
-
-                _infoString = new JSONStorableString("Info",
-                    "Usage:" +
-                    "\n\n<b>a)</b> Select a UISlider atom from the scene to use as a scrubber." +
-                    "\n\n<b>b)</b> Trigger the <i>Clip time (s)</i> or <i>Clip time (normalized)</i> float parameters." +
-                    "\n\n<b>c)</b> Scrub the <i>Clip time (s)</i> slider." +
-                    "\n\nEach option controls the current audio clip played on this atom's audio source."
-                );
 
                 RebuildUISliderOptions();
                 RegisterStringChooser(_scrubberChooser);
@@ -135,37 +126,37 @@ namespace everlaster
                 RegisterBool(_syncClipNameToUISliderBool);
                 RegisterBool(_showTimestampsBool);
 
-                CreateScrollablePopup(_scrubberChooser).popup.labelText.color = Color.black;
-                _clipTimeSlider = CreateSlider(_clipTimeFloat, true);
-                _clipTimeSlider.valueFormat = "F1";
-                if(_uiListener == null || !_uiListener.isEnabled)
-                {
-                    _clipTimeFloat.slider = null;
-                }
-
-                CreateToggle(_syncClipNameToUISliderBool, true);
-                var showTimestampsToggle = CreateToggle(_showTimestampsBool, true);
-
-                var textField = CreateTextField(_infoString);
-                textField.height = 500;
-                textField.backgroundColor = Color.clear;
-
-                _syncClipNameToUISliderBool.setCallbackFunction = value =>
-                {
-                    SyncSliderText();
-                    showTimestampsToggle.toggle.interactable = value;
-                    showTimestampsToggle.textColor = value ? Color.black : Color.gray;
-                    if(!value)
-                    {
-                        _showTimestampsBool.val = false;
-                    }
-                };
-
+                initialized = true;
             }
             catch(Exception e)
             {
-                SuperController.LogError($"{nameof(AudioScrubber)}.{nameof(Init)}: {e}");
+                logBuilder.Exception(e);
             }
+        }
+
+        protected override void CreateUI()
+        {
+            var uiDynamicPopup = CreateScrollablePopup(_scrubberChooser);
+            uiDynamicPopup.popup.labelText.color = Color.black;
+            uiDynamicPopup.popup.selectColor = Colors.paleBlue;
+            popups.Add(uiDynamicPopup.popup);
+
+            _clipTimeSlider = CreateSlider(_clipTimeFloat, true);
+            _clipTimeSlider.valueFormat = "F1";
+            CreateToggle(_syncClipNameToUISliderBool, true);
+            _showTimestampsToggle = CreateToggle(_showTimestampsBool, true);
+
+            var infoString = new JSONStorableString("Info",
+                "Usage:" +
+                "\n\n<b>a)</b> Select a UISlider atom from the scene to use as a scrubber." +
+                "\n\n<b>b)</b> Trigger the <i>Clip time (s)</i> or <i>Clip time (normalized)</i> float parameters." +
+                "\n\n<b>c)</b> Scrub the <i>Clip time (s)</i> slider." +
+                "\n\nEach option controls the current audio clip played on this atom's audio source."
+            );
+            var textField = CreateTextField(infoString);
+            textField.height = 500;
+            textField.backgroundColor = Color.clear;
+            textField.DisableScroll();
         }
 
         void OnAtomAdded(Atom atom)
@@ -232,7 +223,7 @@ namespace everlaster
                 var uiSlider = _uiSliders.Find(atom => atom.uid == option);
                 if(uiSlider == null)
                 {
-                    SuperController.LogError($"{nameof(OnScrubberSelected)}: UISlider '{option}' not found");
+                    logBuilder.Error($"{nameof(OnScrubberSelected)}: UISlider '{option}' not found");
                     _scrubberChooser.valNoCallback = prevOption;
                     return;
                 }
@@ -240,18 +231,13 @@ namespace everlaster
                 var uiSliderTrigger = uiSlider.GetStorableByID("Trigger") as UISliderTrigger;
                 if(uiSliderTrigger != null && uiSliderTrigger.trigger != null)
                 {
-                    foreach(var action in uiSliderTrigger.trigger.TransitionActions)
+                    foreach(string targetName in GetTransitionActionNames(uiSliderTrigger))
                     {
-                        if(action.receiverTargetName == _clipTimeFloat.name)
+                        if(
+                            IsAlreadyTriggering(uiSlider.uid, targetName, _clipTimeFloat.name) ||
+                            IsAlreadyTriggering(uiSlider.uid, targetName, _clipTimeNormalizedFloat.name)
+                        )
                         {
-                            SuperController.LogError($"{nameof(OnScrubberSelected)}: {uiSlider.uid} is already triggering the {_clipTimeFloat.name} parameter");
-                            _scrubberChooser.valNoCallback = prevOption;
-                            return;
-                        }
-
-                        if(action.receiverTargetName == _clipTimeNormalizedFloat.name)
-                        {
-                            SuperController.LogError($"{nameof(OnScrubberSelected)}: {uiSlider.uid} is already triggering the {_clipTimeNormalizedFloat.name} parameter");
                             _scrubberChooser.valNoCallback = prevOption;
                             return;
                         }
@@ -264,17 +250,56 @@ namespace everlaster
                     prevSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
                 }
 
-                var holderTransform = uiSlider.reParentObject.transform.Find("object/rescaleObject/Canvas/Holder");
-                _scrubberSlider = holderTransform.Find("Slider").GetComponent<Slider>();
-                _scrubberText = holderTransform.Find("Text").GetComponent<Text>();
+                var canvasTransform = uiSlider.reParentObject.transform.Find("object/rescaleObject/Canvas");
+                _scrubberSlider = canvasTransform.GetComponentInChildren<Slider>();
+                _scrubberText = canvasTransform.GetComponentInChildren<Text>();
                 _scrubberAtom = uiSlider;
                 _scrubberSlider.onValueChanged.AddListener(OnSceneSliderValueChanged);
                 SyncSliderText();
             }
             catch(Exception e)
             {
-                SuperController.LogError($"{nameof(OnScrubberSelected)}: {e}");
+                logBuilder.Exception(e);
             }
+        }
+
+        static IEnumerable<string> GetTransitionActionNames(UISliderTrigger uiSliderTrigger)
+        {
+            #if VAM_GT_1_22
+            {
+                return uiSliderTrigger.trigger.TransitionActions?.Select(action => action.receiverTargetName) ?? Enumerable.Empty<string>();
+            }
+            #else
+            {
+                var json = uiSliderTrigger.trigger.GetJSON();
+                var transitionActions = json["transitionActions"] as JSONArray;
+                var names = new List<string>();
+                if(transitionActions != null)
+                {
+                    foreach(JSONNode action in transitionActions)
+                    {
+                        var asObject = action as JSONClass;
+                        if(asObject != null && asObject.HasKey("receiverTargetName"))
+                        {
+                            names.Add(asObject["receiverTargetName"].Value);
+                        }
+                    }
+                }
+
+                return names;
+            }
+            #endif
+        }
+
+        bool IsAlreadyTriggering(string sliderUid, string targetName, string floatParamName)
+        {
+            if(targetName == floatParamName)
+            {
+                logBuilder.Error($"{nameof(OnScrubberSelected)}: {sliderUid} is already triggering the {floatParamName} parameter", false);
+                return true;
+            }
+
+            return false;
         }
 
         void SyncSliderText()
@@ -421,13 +446,8 @@ namespace everlaster
             subScenePrefix = null;
         }
 
-        void OnDestroy()
+        protected override void DoDestroy()
         {
-            if(_uiListener != null)
-            {
-                DestroyImmediate(_uiListener);
-            }
-
             if(_scrubberSlider != null)
             {
                 _scrubberSlider.onValueChanged.RemoveListener(OnSceneSliderValueChanged);
