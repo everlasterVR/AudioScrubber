@@ -13,6 +13,7 @@ namespace everlaster
     {
         public override bool ShouldIgnore() => false;
         protected override bool useVersioning => true;
+        public override string className => nameof(AudioScrubber);
 
         protected override void OnUIEnabled()
         {
@@ -27,110 +28,6 @@ namespace everlaster
             if(_clipTimeFloat != null)
             {
                 _clipTimeFloat.slider = null;
-            }
-        }
-
-        AudioSourceControl _audioSourceControl;
-        AudioSource _audioSource;
-        JSONStorableStringChooser _scrubberChooser;
-        JSONStorableFloat _clipTimeFloat;
-        JSONStorableFloat _clipTimeNormalizedFloat;
-        JSONStorableBool _syncClipNameToUISliderBool;
-        JSONStorableBool _showTimestampsBool;
-        UIDynamicSlider _clipTimeSlider;
-        UIDynamicToggle _showTimestampsToggle;
-        Atom _scrubberAtom;
-        Text _scrubberText;
-        Slider _scrubberSlider;
-        string _clipName;
-        readonly List<Atom> _uiSliders = new List<Atom>();
-
-        public override void Init()
-        {
-            try
-            {
-                logBuilder = new LogBuilder(nameof(AudioScrubber));
-                string storableId;
-                var typeToStorableId = new Dictionary<string, string>
-                {
-                    { AtomType.PERSON, "HeadAudioSource" },
-                    { AtomType.AUDIO_SOURCE, "AudioSource" },
-                    { AtomType.APT_SPEAKER, "AptSpeaker_Import" },
-                    { AtomType.RHYTHM_AUDIO_SOURCE, "RhythmSource" },
-                };
-
-                if(!typeToStorableId.TryGetValue(containingAtom.type, out storableId))
-                {
-                    string atomTypesString = typeToStorableId.Keys.Select(AtomType.Inflect).ToPrettyString(", ").ReplaceLast(", ", ", or ");
-                    OnInitError($"Plugin must be added to {atomTypesString} atom.");
-                    return;
-                }
-
-                _audioSourceControl = containingAtom.GetStorableByID(storableId) as AudioSourceControl;
-                if(_audioSourceControl == null)
-                {
-                    OnInitError($"AudioSourceControl {storableId} not found on {containingAtom.uid}");
-                    return;
-                }
-
-                _audioSource = _audioSourceControl.audioSource;
-                _uiSliders.AddRange(SuperController.singleton.GetAtoms().Where(atom => atom.type == "UISlider"));
-                SuperController.singleton.onAtomAddedHandlers += OnAtomAdded;
-                SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
-                SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
-
-                _scrubberChooser = new JSONStorableStringChooser("Scrubber", new List<string>(), "None", "Scrubber");
-                _scrubberChooser.setCallbackFunction = OnScrubberSelected;
-                _scrubberChooser.representsAtomUid = true;
-
-                _clipTimeFloat = new JSONStorableFloat("Clip time (s)", 0, 0, 60, false);
-                _clipTimeFloat.isStorable = false;
-                _clipTimeFloat.setCallbackFunction = value =>
-                {
-                    if(_audioSource != null && _audioSource.clip != null)
-                    {
-                        _audioSource.time = Mathf.Clamp(value, 0, _audioSource.clip.length - 0.1f);
-                    }
-                };
-
-                _clipTimeNormalizedFloat = new JSONStorableFloat("Clip time (normalized)", 0, 0, 1);
-                _clipTimeNormalizedFloat.isStorable = false;
-                _clipTimeNormalizedFloat.setCallbackFunction = value =>
-                {
-                    if(_audioSource != null && _audioSource.clip != null)
-                    {
-                        float length = _audioSource.clip.length;
-                        _audioSource.time = Mathf.Clamp(length * value, 0, length - 0.1f);
-                    }
-                };
-
-                _syncClipNameToUISliderBool = new JSONStorableBool("Sync clip name to scrubber", true);
-                _syncClipNameToUISliderBool.setCallbackFunction = value =>
-                {
-                    SyncSliderText();
-                    _showTimestampsToggle.toggle.interactable = value;
-                    _showTimestampsToggle.textColor = value ? Color.black : Color.gray;
-                    if(!value)
-                    {
-                        _showTimestampsBool.val = false;
-                    }
-                };
-
-                _showTimestampsBool = new JSONStorableBool("Show timestamps in scrubber", true);
-                _showTimestampsBool.setCallbackFunction = value => SyncSliderText();
-
-                RebuildUISliderOptions();
-                RegisterStringChooser(_scrubberChooser);
-                RegisterFloat(_clipTimeFloat);
-                RegisterFloat(_clipTimeNormalizedFloat);
-                RegisterBool(_syncClipNameToUISliderBool);
-                RegisterBool(_showTimestampsBool);
-
-                initialized = true;
-            }
-            catch(Exception e)
-            {
-                logBuilder.Exception(e);
             }
         }
 
@@ -159,9 +56,105 @@ namespace everlaster
             textField.DisableScroll();
         }
 
+        AudioSourceControl _audioSourceControl;
+        AudioSource _audioSource;
+        StorableStringChooser _scrubberChooser;
+        StorableFloat _clipTimeFloat;
+        StorableFloat _clipTimeNormalizedFloat;
+        StorableBool _syncClipNameToUISliderBool;
+        StorableBool _showTimestampsBool;
+        UIDynamicSlider _clipTimeSlider;
+        UIDynamicToggle _showTimestampsToggle;
+        Atom _scrubberAtom;
+        Text _scrubberText;
+        Slider _scrubberSlider;
+        string _clipName;
+        readonly List<Atom> _uiSliders = new List<Atom>();
+
+        protected override void OnInit()
+        {
+            string storableId;
+            var typeToStorableId = new Dictionary<string, string>
+            {
+                { AtomType.PERSON, "HeadAudioSource" },
+                { AtomType.AUDIO_SOURCE, "AudioSource" },
+                { AtomType.APT_SPEAKER, "AptSpeaker_Import" },
+                { AtomType.RHYTHM_AUDIO_SOURCE, "RhythmSource" },
+            };
+
+            if(!typeToStorableId.TryGetValue(containingAtom.type, out storableId))
+            {
+                string atomTypesString = typeToStorableId.Keys.Select(AtomType.Inflect).ToPrettyString(", ").ReplaceLast(", ", ", or ");
+                OnInitError($"Plugin must be added to {atomTypesString} atom.");
+                return;
+            }
+
+            _audioSourceControl = containingAtom.GetStorableByID(storableId) as AudioSourceControl;
+            if(_audioSourceControl == null)
+            {
+                OnInitError($"AudioSourceControl {storableId} not found on {containingAtom.uid}");
+                return;
+            }
+
+            _audioSource = _audioSourceControl.audioSource;
+            _uiSliders.AddRange(SuperController.singleton.GetAtoms().Where(atom => atom.type == AtomType.UI_SLIDER));
+            SuperController.singleton.onAtomAddedHandlers += OnAtomAdded;
+            SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
+            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
+
+            _scrubberChooser = new StorableStringChooser("Scrubber", new List<string>(), "None");
+            _scrubberChooser.SetCallback(OnScrubberSelected);
+            _scrubberChooser.representsAtomUid = true;
+
+            _clipTimeFloat = new StorableFloat("Clip time (s)", 0, 0, 60, false);
+            _clipTimeFloat.isStorable = false;
+            _clipTimeFloat.SetCallback(value =>
+            {
+                if(_audioSource != null && _audioSource.clip != null)
+                {
+                    _audioSource.time = Mathf.Clamp(value, 0, _audioSource.clip.length - 0.1f);
+                }
+            });
+
+            _clipTimeNormalizedFloat = new StorableFloat("Clip time (normalized)", 0, 0, 1);
+            _clipTimeNormalizedFloat.isStorable = false;
+            _clipTimeNormalizedFloat.SetCallback(value =>
+            {
+                if(_audioSource != null && _audioSource.clip != null)
+                {
+                    float length = _audioSource.clip.length;
+                    _audioSource.time = Mathf.Clamp(length * value, 0, length - 0.1f);
+                }
+            });
+
+            _syncClipNameToUISliderBool = new StorableBool("Sync clip name to scrubber", true);
+            _syncClipNameToUISliderBool.SetCallback(value =>
+            {
+                SyncSliderText();
+                _showTimestampsToggle.toggle.interactable = value;
+                _showTimestampsToggle.textColor = value ? Color.black : Color.gray;
+                if(!value)
+                {
+                    _showTimestampsBool.val = false;
+                }
+            });
+
+            _showTimestampsBool = new StorableBool("Show timestamps in scrubber", true);
+            _showTimestampsBool.SetCallback(SyncSliderText);
+
+            RebuildUISliderOptions();
+            RegisterStringChooser(_scrubberChooser);
+            RegisterFloat(_clipTimeFloat);
+            RegisterFloat(_clipTimeNormalizedFloat);
+            RegisterBool(_syncClipNameToUISliderBool);
+            RegisterBool(_showTimestampsBool);
+
+            initialized = true;
+        }
+
         void OnAtomAdded(Atom atom)
         {
-            if(atom.type == "UISlider" && !_uiSliders.Contains(atom))
+            if(atom.type == AtomType.UI_SLIDER && !_uiSliders.Contains(atom))
             {
                 _uiSliders.Add(atom);
             }
