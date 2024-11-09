@@ -5,4 +5,6 @@ bin/
 obj/
 publish/
 *.fav
+*.hide
+AudioScrubber.cslist
 Folder.DotSettings.user

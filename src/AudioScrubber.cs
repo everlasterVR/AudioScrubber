@@ -12,8 +12,8 @@ namespace everlaster
     sealed class AudioScrubber : Script
     {
         public override bool ShouldIgnore() => false;
-        protected override bool useVersioning => true;
         public override string className => nameof(AudioScrubber);
+        protected override bool useVersioning => true;
 
         protected override void OnUIEnabled()
         {
@@ -36,7 +36,7 @@ namespace everlaster
             var uiDynamicPopup = CreateScrollablePopup(_scrubberChooser);
             uiDynamicPopup.popup.labelText.color = Color.black;
             uiDynamicPopup.popup.selectColor = Colors.paleBlue;
-            popups.Add(uiDynamicPopup.popup);
+            RegisterPopup(uiDynamicPopup.popup);
 
             _clipTimeSlider = CreateSlider(_clipTimeFloat, true);
             _clipTimeSlider.valueFormat = "F1";
@@ -333,7 +333,7 @@ namespace everlaster
 
         void Update()
         {
-            if(_audioSource == null)
+            if(!initialized || _audioSource == null)
             {
                 return;
             }
@@ -413,7 +413,7 @@ namespace everlaster
             _scrubberText.text = $"{_clipName} [{min:D2}:{sec:D2} / {_clipLengthTimestamp}]";
         }
 
-        public override void RestoreFromJSON(
+        protected override void DoRestoreFromJSON(
             JSONClass jc,
             bool restorePhysical = true,
             bool restoreAppearance = true,
@@ -435,7 +435,7 @@ namespace everlaster
                 }
             }
 
-            base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+            base.DoRestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
             subScenePrefix = null;
         }
 

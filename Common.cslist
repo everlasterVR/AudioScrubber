@@ -1,10 +1,11 @@
 Common\src\Components\UnityEventsListener.cs
+Common\src\Storables\StorableAction.cs
 Common\src\Storables\StorableBool.cs
 Common\src\Storables\StorableFloat.cs
 Common\src\Storables\StorableStringChooser.cs
 Common\src\Utils\FileUtils.cs
 Common\src\Utils\LogBuilder.cs
+Common\src\Bindings.cs
 Common\src\Extensions.cs
 Common\src\Resources.cs
 Common\src\Script.cs
-src\AudioScrubber.cs

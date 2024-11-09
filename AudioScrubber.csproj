@@ -86,6 +86,7 @@
         <Compile Include="src\AudioScrubber.cs" />
     </ItemGroup>
     <ItemGroup>
+        <Content Include="Common.cslist" />
         <Content Include="Common\scripts\*.sh"/>
         <Content Include=".gitignore"/>
         <Content Include="meta.json"/>
