@@ -15,22 +15,6 @@ namespace everlaster
         public override string className => nameof(AudioScrubber);
         protected override bool useVersioning => true;
 
-        protected override void OnUIEnabled()
-        {
-            if(_clipTimeFloat != null)
-            {
-                _clipTimeFloat.slider = _clipTimeSlider.slider;
-            }
-        }
-
-        protected override void OnUIDisabled()
-        {
-            if(_clipTimeFloat != null)
-            {
-                _clipTimeFloat.slider = null;
-            }
-        }
-
         protected override void CreateUI()
         {
             var uiDynamicPopup = CreateScrollablePopup(_scrubberChooser);
@@ -54,6 +38,22 @@ namespace everlaster
             textField.height = 500;
             textField.backgroundColor = Color.clear;
             textField.DisableScroll();
+
+            RegisterOnUIEnabled(() =>
+            {
+                if(_clipTimeFloat != null)
+                {
+                    _clipTimeFloat.slider = _clipTimeSlider.slider;
+                }
+            });
+
+            RegisterOnUIDisabled(() =>
+            {
+                if(_clipTimeFloat != null)
+                {
+                    _clipTimeFloat.slider = null;
+                }
+            });
         }
 
         AudioSourceControl _audioSourceControl;
