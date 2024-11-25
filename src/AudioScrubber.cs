@@ -22,8 +22,8 @@ namespace everlaster
             uiDynamicPopup.popup.selectColor = Colors.paleBlue;
             RegisterPopup(uiDynamicPopup.popup);
 
-            _clipTimeSlider = CreateSlider(_clipTimeFloat, true);
-            _clipTimeSlider.valueFormat = "F1";
+            var clipTimeSlider = CreateSlider(_clipTimeFloat, true);
+            clipTimeSlider.valueFormat = "F1";
             CreateToggle(_syncClipNameToUISliderBool, true);
             _showTimestampsToggle = CreateToggle(_showTimestampsBool, true);
 
@@ -39,21 +39,8 @@ namespace everlaster
             textField.backgroundColor = Color.clear;
             textField.DisableScroll();
 
-            RegisterOnUIEnabled(() =>
-            {
-                if(_clipTimeFloat != null)
-                {
-                    _clipTimeFloat.slider = _clipTimeSlider.slider;
-                }
-            });
-
-            RegisterOnUIDisabled(() =>
-            {
-                if(_clipTimeFloat != null)
-                {
-                    _clipTimeFloat.slider = null;
-                }
-            });
+            RegisterOnUIEnabled(() => _clipTimeFloat.slider = clipTimeSlider.slider);
+            RegisterOnUIDisabled(() => _clipTimeFloat.slider = null);
         }
 
         AudioSourceControl _audioSourceControl;
@@ -63,7 +50,6 @@ namespace everlaster
         StorableFloat _clipTimeNormalizedFloat;
         StorableBool _syncClipNameToUISliderBool;
         StorableBool _showTimestampsBool;
-        UIDynamicSlider _clipTimeSlider;
         UIDynamicToggle _showTimestampsToggle;
         Atom _scrubberAtom;
         Text _scrubberText;
@@ -131,11 +117,14 @@ namespace everlaster
             _syncClipNameToUISliderBool.SetCallback(value =>
             {
                 SyncSliderText();
-                _showTimestampsToggle.toggle.interactable = value;
-                _showTimestampsToggle.textColor = value ? Color.black : Color.gray;
-                if(!value)
+                if(uiCreated)
                 {
-                    _showTimestampsBool.val = false;
+                    _showTimestampsToggle.toggle.interactable = value;
+                    _showTimestampsToggle.textColor = value ? Color.black : Color.gray;
+                    if(!value)
+                    {
+                        _showTimestampsBool.val = false;
+                    }
                 }
             });
 
@@ -415,10 +404,10 @@ namespace everlaster
 
         protected override void DoRestoreFromJSON(
             JSONClass jc,
-            bool restorePhysical = true,
-            bool restoreAppearance = true,
-            JSONArray presetAtoms = null,
-            bool setMissingToDefault = true
+            bool restorePhysical,
+            bool restoreAppearance,
+            JSONArray presetAtoms,
+            bool setMissingToDefault
         )
         {
             if(containingAtom.containingSubScene != null)
